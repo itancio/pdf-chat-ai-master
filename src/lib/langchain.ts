@@ -5,16 +5,19 @@ import { getVectorStore } from "./vector-store";
 import { getPineconeClient } from "./pinecone-client";
 import { formatChatHistory } from "./utils";
 
-const CONDENSE_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
+const CONDENSE_TEMPLATE = `Given the following conversation and a follow up question, 
+rephrase the follow up question to be a standalone question.
 
 Chat History:
 {chat_history}
 Follow Up Input: {question}
 Standalone question:`;
 
-const QA_TEMPLATE = `You are an enthusiastic AI assistant. Use the following pieces of context to answer the question at the end.
+const QA_TEMPLATE = `You are an enthusiastic AI assistant. 
+Use the following pieces of context to answer the question at the end.
 If you don't know the answer, just say you don't know. DO NOT try to make up an answer.
-If the question is not related to the context, politely respond that you are tuned to only answer questions that are related to the context.
+If the question is not related to the context, politely respond 
+that you are tuned to only answer questions that are related to the context.
 
 {context}
 
@@ -82,14 +85,13 @@ export async function callChain({
 }: callChainArgs) {
   try {
 
-    console.log("Question from callChain: ", question);
+    console.log("(lib/langchain.ts) Getting pinecone client and vectorstore in callChain()");
 
     // Open AI recommendation
     const sanitizedQuestion = question.trim().replaceAll("\n", " ");
+
+    // Get Pinecone client and vector store
     const pineconeClient = await getPineconeClient();
-
-    console.log("(lib/langchain.ts) Pinecone Client in callChain: ", pineconeClient);
-
     const vectorStore = await getVectorStore(pineconeClient);
 
     // Create encoding to convert token (string) to Uint8Array
@@ -98,7 +100,7 @@ export async function callChain({
     const chain = makeChain(vectorStore, writer);
     const formattedChatHistory = formatChatHistory(chatHistory);
 
-    console.log("(lib/langchain.ts) formattedChaatHistory: ", formattedChatHistory);
+    console.log("(lib/langchain.ts) chatHistory length in callChain: ", formattedChatHistory.length);
 
     // Question using chat-history
     // Reference https://js.langchain.com/docs/modules/chains/popular/chat_vector_db#externally-managed-memory

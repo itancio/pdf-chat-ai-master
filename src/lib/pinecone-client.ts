@@ -1,8 +1,9 @@
 // import { PineconeClient } from "@pinecone-database/pinecone";
 import { Pinecone } from "@pinecone-database/pinecone";
-import { env } from "./config";
-import { delay } from "./utils";
-import { configureIndex } from "@pinecone-database/pinecone/dist/control";
+import { env } from "@/lib/config";
+import { delay } from "@/lib/utils";
+import {initKnowledgeBase} from "@/lib/knowledgeBase";
+import { pineconeEmbedAndStore } from "@/lib/vector-store";
 
 let pineconeClientInstance: Pinecone | null = null;
 
@@ -69,14 +70,68 @@ async function initPineconeClient() {
   }
 }
 
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { DirectoryLoader } from "langchain/document_loaders/fs/directory";
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
+import {
+  JSONLoader,
+  JSONLinesLoader,
+} from "langchain/document_loaders/fs/json";
+import { TextLoader } from "langchain/document_loaders/fs/text";
+import { CSVLoader } from "@langchain/community/document_loaders/fs/csv";
+
+
+
 export async function getPineconeClient() {
   if (!pineconeClientInstance) {
     pineconeClientInstance = await initPineconeClient();
+
+    console.log("(lib/pinecone-client.ts) Initializing knowledgeBase...");
+
+    const files_dir = "src/docs"
+    const loader = new DirectoryLoader(
+    files_dir, {
+        ".json": (path) => new JSONLoader(path, "/texts"),
+        ".jsonl": (path) => new JSONLinesLoader(path, "/html"),
+        ".txt": (path) => new TextLoader(path),
+        ".csv": (path) => new CSVLoader(path, "text"),
+        ".pdf": (path) => new PDFLoader(path, {
+            splitPages: true,
+            parsedItemSeparator: ""
+        }),
+    });
+    const docs = await loader.load();
+
+    console.log("(lib/pdf-loader.ts) Loaded PDF: ", docs.length);
+
+    // From the docs https://www.pinecone.io/learn/chunking-strategies/
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+    });
+    
+    console.log("Preparing chunks from PDF file");
+    const chunkedDocs = await textSplitter.splitDocuments(docs);
+    console.log(`(lib/vector-store.ts) chunked documents: ${chunkedDocs.length}`);
+
+    const pineconeClient = await getPineconeClient();
+    
+    console.log(`Loading ${docs.length} chunks into pinecone...`);
+    await pineconeEmbedAndStore(pineconeClient, docs);
+    console.log("Data embedded and stored in pine-cone index");
+
+
+
+
+
   } else {
     console.log("Pinecone Client already initialized. Reusing...");
   }
 
-  console.log("(lib > pinecone-client.ts) Returning Pinecone Client...: ", pineconeClientInstance);
+  console.log("(lib > pinecone-client.ts) Returning Pinecone Client from getPineconeClient() ", pineconeClientInstance);
 
   return pineconeClientInstance;
 }
+
+
+

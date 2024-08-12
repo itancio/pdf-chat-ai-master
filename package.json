@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prepare:data": "tsx -r dotenv/config ./src/scripts/pinecone-prepare-docs.ts"
+    "prepare:data": "tsx -r ./src/scripts/pinecone-prepare-docs.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.2.25",

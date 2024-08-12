@@ -96,7 +96,7 @@ export function Chat() {
         }
       }
 
-      // handleStreamEnd(question, streamingAIContent, sourceDocuments);
+      handleStreamEnd(question, streamingAIContent, sourceDocuments);
     } catch (error) {
       console.log("Error occured ", error);
     } finally {
